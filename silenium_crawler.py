@@ -107,6 +107,8 @@ class Crawler:
         articles = []
         articlelist = soup.find('ul', id='resultlist')
         for article in articlelist.find_all('li'):
+            if article.has_key('class') and 'ad-std' in article['class']:
+                continue
             a = {}
             d = article.find('div', class_='date')
             d = d.get_text()
