@@ -4,7 +4,8 @@ from datetime import datetime
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
-from silenium_crawler import Crawler
+import derstandard_crawler
+import krone_crawler
 
 
 def store_articles(client, args):
@@ -14,7 +15,7 @@ def store_articles(client, args):
     db = client.derstandardat
     articles_collection = db.articles
 
-    with Crawler() as crawler:
+    with derstandard_crawler.Crawler() as crawler:
         iter_articles = crawler.archive_articles(start, end, args.politeness)
         for day_articles in iter_articles:
             try:
@@ -26,8 +27,7 @@ def store_articles(client, args):
         logging.info('Articles in MongoDB: ' + str(articles_collection.count()))
 
 
-def get_postings_to_articles(client, args, check_if_in_db=True):
-
+def get_std_postings_to_articles(client, args, check_if_in_db=True):
     db = client.derstandardat
     articles_collection = db.articles
     postings_collection = db.postings
@@ -39,7 +39,7 @@ def get_postings_to_articles(client, args, check_if_in_db=True):
         iter = articles_collection.find()
 
     i = 0
-    with Crawler() as crawler:
+    with derstandard_crawler.Crawler() as crawler:
         for i, article in enumerate(iter):
             a_postings = 0
             if check_if_in_db:
@@ -61,6 +61,16 @@ def get_postings_to_articles(client, args, check_if_in_db=True):
     logging.info('Postings in MongoDB: ' + str(postings_collection.count()))
 
 
+def get_krone_postings_to_articles(client, args):
+    db = client.krone
+
+    ids_file = args.article_ids
+    with krone_crawler.Crawler() as c:
+        with open(ids_file) as f:
+            for code in f:
+                c.get_postings(db, code.strip(), politeness=1)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='derStandard.at data extraction')
     parser.add_argument('--host', default='localhost')
@@ -72,16 +82,22 @@ if __name__ == "__main__":
 
     subparsers = parser.add_subparsers(help='Web scraping tools for articles and postings on derStandard.at')
     # create the parser for the "start" command
-    parser_articles = subparsers.add_parser('articles', help='extract article URLs and titles from archive pages')
+    parser_articles = subparsers.add_parser('std-articles', help='extract article URLs and titles from archive pages')
     parser_articles.add_argument('--start', help='start date: yyyy-mm-dd')
     parser_articles.add_argument('--end', help='end date: yyyy-mm-dd')
     parser_articles.set_defaults(func=store_articles)
 
-    # create the parser for the "end" command
-    parser_postings = subparsers.add_parser('postings', help='extract postings from articles in MongoDB database')
+    # create the parser for the "std-postings" command
+    parser_postings = subparsers.add_parser('std-postings', help='extract postings from articles in MongoDB database')
     parser_postings.add_argument('--start', help='start date: yyyy-mm-dd')
     parser_postings.add_argument('--end', help='end date: yyyy-mm-dd')
-    parser_postings.set_defaults(func=get_postings_to_articles)
+    parser_postings.set_defaults(func=get_std_postings_to_articles)
+
+
+    # create the parser for the "krone-postings" command
+    parser_postings = subparsers.add_parser('krone-postings', help='extract postings from articles in MongoDB database')
+    parser_postings.add_argument('--article-ids', default='krone_links_cleaned.txt')
+    parser_postings.set_defaults(func=get_krone_postings_to_articles)
     args = parser.parse_args()
 
     if args.loglevel == 'info':

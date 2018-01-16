@@ -63,4 +63,4 @@ target/
 *.log
 
 # other folder
-*derstandardat*
+*export*
