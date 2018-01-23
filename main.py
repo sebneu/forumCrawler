@@ -1,11 +1,13 @@
 import argparse
 import logging
+import time
 from datetime import datetime
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
 import derstandard_crawler
 import krone_crawler
+import presse_crawler
 
 
 def store_articles(client, args):
@@ -71,8 +73,41 @@ def get_krone_postings_to_articles(client, args):
                 c.get_postings(db, code.strip(), politeness=1)
 
 
+def insert_presse_articles(client, args):
+    db = client.diepresse
+
+    ids_file = args.article_ids
+    with presse_crawler.Crawler() as c:
+        with open(ids_file) as f:
+            for page in f:
+                c.insert_article(db, page.strip(), politeness=0.5)
+
+
+def get_presse_postings_to_articles(client, args):
+    db = client.diepresse
+    articles_collection = db.articles
+    postings_collection = db.postings
+
+    iter = articles_collection.find()
+    for i, article in enumerate(iter):
+
+        if args.politeness > 0:
+            time.sleep(args.politeness)
+        postings = presse_crawler.get_postings(article['_id'])
+        if postings:
+            try:
+                postings_collection.insert_many(postings, ordered=False)
+            except BulkWriteError as bwe:
+                werrors = bwe.details['writeErrors']
+                logging.warning('Inserting errors: ' + str(werrors))
+
+        if i % 100 == 0:
+            logging.info('Processed articles: ' + str(i))
+
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog='derStandard.at data extraction')
+    parser = argparse.ArgumentParser(prog='User comments extraction from newspaper forums')
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', type=int, default=27017)
     filename = datetime.now().strftime('%Y-%m-%d') + '.log'
@@ -98,7 +133,19 @@ if __name__ == "__main__":
     parser_postings = subparsers.add_parser('krone-postings', help='extract postings from articles in MongoDB database')
     parser_postings.add_argument('--article-ids', default='krone_links_cleaned.txt')
     parser_postings.set_defaults(func=get_krone_postings_to_articles)
+
+    # create the parser for the "presse-articles" command
+    parser_postings = subparsers.add_parser('presse-articles', help='insert articles for diePresse.com')
+    parser_postings.add_argument('--article-ids', default='presse_links_cleaned.txt')
+    parser_postings.set_defaults(func=insert_presse_articles)
+
+    # create the parser for the "presse-postings" command
+    parser_postings = subparsers.add_parser('presse-postings', help='extract postings from Presse articles')
+    parser_postings.set_defaults(func=get_presse_postings_to_articles)
+
+    # parse arguments
     args = parser.parse_args()
+
 
     if args.loglevel == 'info':
         lvl = logging.INFO

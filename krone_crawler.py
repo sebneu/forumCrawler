@@ -1,15 +1,10 @@
 # coding=utf-8
 import time
-from dateutil import rrule
-from datetime import datetime
 import dateparser
 
 from bs4 import BeautifulSoup
 
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
-from selenium.webdriver.common.action_chains import ActionChains
-
 import logging
 import locale
 locale.setlocale(locale.LC_ALL, "de_AT.utf8")
@@ -100,33 +95,6 @@ class Crawler:
         except Exception as e:
             logging.debug('Exception for article: ' + page)
             logging.debug(e)
-
-
-    def archive_articles(self):
-        waybackMachine = 'https://web.archive.org/web/sitemap/http://www.krone.at/'
-        self.browser.get(waybackMachine)
-        all_links = []
-
-        time.sleep(150)
-        circle = self.browser.find_element_by_id("d3_container")
-        for path in circle.find_elements_by_tag_name('path'):
-            try:
-                hover = ActionChains(self.browser).move_to_element(path)
-                hover.perform()
-                time.sleep(0.1)
-                el = self.browser.find_element_by_class_name('sequence')
-                link_el = el.find_element_by_tag_name('a')
-                if link_el:
-                    text = link_el.get_attribute('href')
-                    all_links.append(text)
-                    print text
-            except Exception:
-                print 'element not displayed'
-
-        with open('krone_links.txt', 'w') as f:
-            for l in all_links:
-                f.write(l)
-                f.write('\n')
 
 
 def get_links_from_doc(doc='krone_links.txt'):
