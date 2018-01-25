@@ -92,6 +92,7 @@ class Crawler:
 
         if articles_collection.find_one({'_id': article_id}):
             print 'article already stored: ', page
+            return
 
         article = {'_id': article_id, 'url': page}
         try:
@@ -112,7 +113,6 @@ class Crawler:
             # Number of postings. Currently not needed: could change over time, and can be computed from DB
             #count = self.browser.find_element_by_css_selector('#page > div.page__wrapper > div > article > section > div.article__byline > div.badge__commentcount.badge__commentcount--byline > a > span.comments-count')
             #article['postings_count'] = int(count.text)
-
             articles_collection.insert(article)
 
         except Exception as e:
@@ -124,15 +124,25 @@ def get_postings_data(d, postings, parent_id=None, level=0):
     posting = d['_res']
 
     p = {
-        'article_id': posting['articleId'],
-        'username': posting['metadata']['username'].encode('utf-8'),
-        'user_id': posting['userId'],
-        '_id': posting['commentId'],
-        'text': posting['content'].encode('utf-8'),
+        'article_id': str(posting['articleId']),
+        '_id': str(posting['commentId']),
         'date': dateutil.parser.parse(posting['creation']),
         'positive': posting['_votings']['up'],
         'level': level
     }
+
+    if 'content' in posting and posting['content']:
+        p['text'] = posting['content'].encode('utf-8')
+    elif 'title' in posting and posting['title']:
+        p['text'] = posting['title'].encode('utf-8')
+    else:
+        return
+
+    if 'userId' in posting and posting['userId']:
+        p['user_id'] = str(posting['userId'])
+
+    if 'metadata' in posting and posting['metadata'] and 'username' in posting['metadata']:
+        p['username'] = posting['metadata']['username'].encode('utf-8')
 
     if parent_id:
         p['parent_id'] = parent_id
@@ -143,7 +153,7 @@ def get_postings_data(d, postings, parent_id=None, level=0):
 
 
 def get_postings(article_id, comments=15):
-    try:
+    #try:
         page = 0
 
         url = 'https://comment-middleware.getoctopus.com/live/diepresse/contents'
@@ -155,31 +165,47 @@ def get_postings(article_id, comments=15):
         if resp.status_code == 200:
             postings = []
             data = resp.json()
-
-            while data['_links']['self'] != data['_links']['last']:
-                for p in data['_links']['contents']:
-                    get_postings_data(p, postings)
+            while True:
+                if 'contents' in data['_links']:
+                    res = data['_links']['contents']
+                    if isinstance(res, list):
+                        for p in res:
+                            get_postings_data(p, postings)
+                    elif isinstance(res, dict):
+                        get_postings_data(res, postings)
+                    else:
+                        break
+                else:
+                    break
                 page += 1
-                current = url + '/{0}/comments?page={1}&size={2}'.format(article_id, page, comments)
-                resp = requests.get(current)
-                data = resp.json()
+
+                # as long as "last" exists and the current one is not the last one, we are not on the last page
+                if data['_links'].get('last') and data['_links']['self']['href'] != data['_links']['last']['href']:
+                    current = url + '/{0}/comments?page={1}&size={2}'.format(article_id, page, comments)
+                    resp = requests.get(current)
+                    data = resp.json()
+                else:
+                    break
+
             return postings
         else:
             raise Exception(resp.content)
-    except Exception as e:
-        logging.debug('Exception for article: ' + article_id)
-        logging.debug(e)
-        return []
+    #except Exception as e:
+    #    logging.debug('Exception for article: ' + article_id)
+    #    logging.debug(e)
+    #    return []
 
 
 def get_links_from_doc(doc='presse_links.txt'):
     idset = set()
     with open(doc) as f:
         for line in f:
-            id = line.split('web.archive.org/web/20180630//')[1].strip()
-            page = 'https://' + id
-            page = page.split('?')[0]
-            idset.add(page)
+            tmp = line.split('diepresse.com/home/')
+            if len(tmp) > 1:
+                id = tmp[1].strip()
+                page = 'https://diepresse.com/home/' + id
+                page = page.split('?')[0]
+                idset.add(page)
     with open('presse_links_cleaned.txt', 'w') as f:
         for id in idset:
             f.write(id + '\n')
