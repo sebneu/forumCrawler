@@ -10,10 +10,10 @@ This folder contains the annotated datasets for three hate speech types.
 
 ## R_data_analyses.R
 
-This R script contains all used R code for calculations and statistics we used in the Thesis.
+This R script contains all used R code for calculations and statistics we used in the Thesis.<br/>
 The code contains comments on how to apply it on all 3 newspaper datasets.
 
 ## Graph_Postings_by_User.xlsx
 
-This excel sheet calculates the percentages of how many users wrote which amount of postings.
+This excel sheet calculates the percentages of how many users wrote which amount of postings.<br/>
 This was done in Excel because the graph simply looks better.
