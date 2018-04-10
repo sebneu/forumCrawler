@@ -20,9 +20,9 @@ guidance for future works.
 
 ## Import to Mongo DB
 
-The following commands import all 4 annotated datasets into your MongoDB into the new DB HateSpeechTypes.
-You can change this to any name you like or take the name of an existing DB.
-The filepaths needs to be adjusted to where you store the data dumps.
+The following commands import all 4 annotated datasets into your MongoDB into the new DB HateSpeechTypes. <br/>
+You can change this to any name you like or take the name of an existing DB. <br/>
+The filepaths needs to be adjusted to where you store the data dumps. <br/>
 
 `mongorestore  --db HateSpeechTypes --collection sampleTypeMuslimRefugee  c:\annotated_HS_Datasets\hs_type1\sampleTypeMuslimRefugee.bson`
 
