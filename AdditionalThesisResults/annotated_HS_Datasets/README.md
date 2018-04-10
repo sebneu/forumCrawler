@@ -15,7 +15,8 @@ hate speech. Severity should work as a measurement on how severe a posting
 is, with a range from 0 to 3. The default value is again 0 if the posting
 is not offensive, when the posting contains hate speech the value increases
 with severity. This variable is very subjective and should only be used as
-guidance for future works.
+guidance for future works. <br/>
+We also added the variable newspaper which has the value 1, 2 or 3 for the newspaper the comments origins from.
 
 
 ## Import to Mongo DB
