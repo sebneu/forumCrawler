@@ -39,12 +39,12 @@ class Crawler:
             time.sleep(2)
             return _get_more_button()
 
-    def get_postings_from_html(self, formatted_result, article_id):
+    def get_postings_from_html(self, formatted_result, url):
         soup = BeautifulSoup(formatted_result, 'html.parser')
         postinglist = soup.find('div', id='postinglist')
 
         for posting in postinglist.find_all('div', class_='posting'):
-            p = {'article_id': article_id}
+            p = {'article_id': url}
             if posting.has_attr('data-communityname') and posting['data-communityname']:
                 p['username'] = posting['data-communityname'].encode('utf-8')
 
@@ -80,25 +80,24 @@ class Crawler:
 
             yield p
 
-    def get_postings(self, article_id, politeness):
-        page = 'https://derstandard.at/' + article_id
+    def get_postings(self, url, politeness):
         try:
             if politeness > 0:
                 time.sleep(politeness)
 
-            self.browser.get(page)
+            self.browser.get(url)
 
             postings = {}
-            for p in self.get_postings_from_html(self.browser.page_source, article_id):
+            for p in self.get_postings_from_html(self.browser.page_source, url):
                 postings[p['_id']] = p
 
             while self.load_more_postings():
-                for p in self.get_postings_from_html(self.browser.page_source, article_id):
+                for p in self.get_postings_from_html(self.browser.page_source, url):
                     postings[p['_id']] = p
 
             return postings.values()
         except Exception as e:
-            logging.debug('Exception for article: ' + page)
+            logging.debug('Exception for article: ' + url)
             logging.debug(e)
             return []
 

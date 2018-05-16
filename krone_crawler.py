@@ -36,12 +36,12 @@ class Crawler:
             return False
 
 
-    def get_postings_from_html(self, formatted_result, article_id):
+    def get_postings_from_html(self, formatted_result, url):
         soup = BeautifulSoup(formatted_result, 'html.parser')
         postinglist = soup.find('div', id='comment-list')
 
         for posting in postinglist.find_all('div', class_='c_comment'):
-            p = {'article_id': article_id}
+            p = {'article_id': url}
             p['username'] = posting.find('div', class_='c_name').get_text().encode('utf-8')
             d = posting.find('div', class_='c_datetime').get_text().strip().encode('utf-8').split(', ')[1].replace('Jänner', 'Januar')
             p['date'] = dateparser.parse(d, languages=['de'])
@@ -62,43 +62,36 @@ class Crawler:
             yield p
 
 
-    def get_postings(self, db, article_id, politeness):
-        articles_collection = db.articles
-        postings_collection = db.postings
+    def get_postings(self, url, politeness):
+        article = {}
+        postings = []
 
-        if not articles_collection.find_one({'_id': article_id}):
-            page = 'http://www.krone.at/' + article_id
-            article = {'_id': article_id, 'url': page}
-            try:
-                if politeness > 0:
-                    time.sleep(politeness)
-                self.browser.get(page)
+        try:
+            if politeness > 0:
+                time.sleep(politeness)
+            self.browser.get(url)
 
-                # get article metadata
-                a_center = self.browser.find_element_by_class_name('col-xs-8')
-                a_datetime = a_center.find_element_by_class_name('c_pretitle').find_element_by_class_name('c_time').text.encode('utf-8')
-                article['date'] = dateparser.parse(a_datetime, languages=['de'])
+            # get article metadata
+            a_center = self.browser.find_element_by_class_name('col-xs-8')
+            a_datetime = a_center.find_element_by_class_name('c_pretitle').find_element_by_class_name('c_time').text.encode('utf-8')
+            article['date'] = dateparser.parse(a_datetime, languages=['de'])
 
-                a_title = a_center.find_element_by_class_name('c_title').find_element_by_tag_name('h1').text.encode('utf-8').strip()
-                article['title'] = a_title
+            a_title = a_center.find_element_by_class_name('c_title').find_element_by_tag_name('h1').text.encode('utf-8').strip()
+            article['title'] = a_title
 
-                a_topic = self.browser.find_element_by_class_name('c_active').find_element_by_tag_name('a').get_attribute('href').strip()
-                article['topic'] = a_topic
+            a_topic = self.browser.find_element_by_class_name('c_active').find_element_by_tag_name('a').get_attribute('href').strip()
+            article['topic'] = a_topic
 
-                articles_collection.insert(article)
+            for p in self.get_postings_from_html(self.browser.page_source, url):
+                postings.append(p)
 
-                postings = []
-                for p in self.get_postings_from_html(self.browser.page_source, article_id):
+            while self.load_more_postings():
+                for p in self.get_postings_from_html(self.browser.page_source, url):
                     postings.append(p)
-
-                while self.load_more_postings():
-                    for p in self.get_postings_from_html(self.browser.page_source, article_id):
-                        postings.append(p)
-                if postings:
-                   postings_collection.insert_many(postings)
-            except Exception as e:
-                logging.debug('Exception for article: ' + page)
-                logging.debug(e)
+        except Exception as e:
+            logging.debug('Exception for article: ' + url)
+            logging.debug(e)
+        return article, postings
 
 
 def get_links_from_doc(doc='krone_links.txt'):
