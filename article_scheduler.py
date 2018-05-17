@@ -1,5 +1,5 @@
 import argparse
-
+import time
 from datetime import datetime, timedelta
 from time import mktime
 from datetime import datetime
@@ -31,6 +31,7 @@ def compress_article(url):
         return None
 
 def get_articles(db, args):
+    politeness = args.politeness
     for filename in os.listdir('rss_feeds'):
         if filename.endswith('.txt'):
             newspaper = filename.split('.txt')[0]
@@ -58,6 +59,8 @@ def get_articles(db, args):
                             }
                             db.articles.insert(doc)
                             i += 1
+                            # wait for politeness value
+                            time.sleep(politeness)
                     logging.info('Inserted articles: ' + str(i))
 
 
@@ -82,8 +85,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Crawl and store newspaper articles and comments')
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', type=int, default=27017)
+    parser.add_argument('--username')
+    parser.add_argument('--password')
     parser.add_argument('--logfile')
-    parser.add_argument('--loglevel', type=str, default='debug')
+    parser.add_argument('--loglevel', type=str, default='info')
     parser.add_argument('-p', '--politeness', type=float, default=1)
 
     subparsers = parser.add_subparsers(help='Load and store articles and comments')
@@ -105,6 +110,6 @@ if __name__ == '__main__':
         lvl = logging.DEBUG
     logging.basicConfig(level=lvl, filename=args.logfile, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-    client = MongoClient(args.host, args.port)
+    client = MongoClient(args.host, args.port, username=args.username, password=args.password)
     db = client.forumdata
     args.func(db, args)
