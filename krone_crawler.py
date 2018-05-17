@@ -34,7 +34,7 @@ class KroneCrawler(Crawler):
         postinglist = soup.find('div', id='comment-list')
 
         for posting in postinglist.find_all('div', class_='c_comment'):
-            p = {'article_id': url}
+            p = {'article_id': url, 'newspaper': 'krone'}
             p['username'] = posting.find('div', class_='c_name').get_text().encode('utf-8')
             d = posting.find('div', class_='c_datetime').get_text().strip().encode('utf-8').split(', ')[1].replace('Jänner', 'Januar')
             p['date'] = dateparser.parse(d, languages=['de'])

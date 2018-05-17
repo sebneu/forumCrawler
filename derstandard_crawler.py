@@ -58,7 +58,7 @@ class StandardCrawler(Crawler):
         postinglist = soup.find('div', id='postinglist')
 
         for posting in postinglist.find_all('div', class_='posting'):
-            p = {'article_id': url}
+            p = {'article_id': url, 'newspaper': 'derstandard'}
             if posting.has_attr('data-communityname') and posting['data-communityname']:
                 p['username'] = posting['data-communityname'].encode('utf-8')
 

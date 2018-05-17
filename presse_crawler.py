@@ -79,10 +79,11 @@ class PresseCrawler(Crawler):
             prev_comment_id = p['_id']
             yield p
 
+
     def insert_article(self, db, page, politeness):
         articles_collection = db.articles
 
-        article_id = get_article_id(url)
+        article_id = get_article_id(page)
 
         if not article_id:
             print 'no id found: ', page
@@ -120,11 +121,12 @@ class PresseCrawler(Crawler):
             logging.debug(e)
 
 
-def get_postings_data(d, postings, parent_id=None, level=0):
+def get_postings_data(article_url, d, postings, parent_id=None, level=0):
     posting = d['_res']
 
     p = {
-        'article_id': str(posting['articleId']),
+        'newspaper': 'presse',
+        'article_id': article_url,
         '_id': str(posting['commentId']),
         'date': dateutil.parser.parse(posting['creation']),
         'positive': posting['_votings']['up'],
@@ -149,12 +151,12 @@ def get_postings_data(d, postings, parent_id=None, level=0):
 
     postings.append(p)
     for sub_d in posting['userComments']:
-        get_postings_data(sub_d, postings, parent_id=p['_id'], level=level + 1)
+        get_postings_data(article_url, sub_d, postings, parent_id=p['_id'], level=level + 1)
 
 
-def get_postings(url, comments=15, politeness=1):
+def get_postings(article_url, comments=15, politeness=1):
     try:
-        article_id = get_article_id(url)
+        article_id = get_article_id(article_url)
         a = {'article_id': article_id}
         page = 0
 
@@ -172,9 +174,9 @@ def get_postings(url, comments=15, politeness=1):
                     res = data['_links']['contents']
                     if isinstance(res, list):
                         for p in res:
-                            get_postings_data(p, postings)
+                            get_postings_data(article_url, p, postings)
                     elif isinstance(res, dict):
-                        get_postings_data(res, postings)
+                        get_postings_data(article_url, res, postings)
                     else:
                         break
                 else:
@@ -193,7 +195,7 @@ def get_postings(url, comments=15, politeness=1):
         else:
             raise Exception(resp.content)
     except Exception as e:
-        logging.debug('Exception for article: ' + str(url))
+        logging.debug('Exception for article: ' + str(article_url))
         logging.debug(e)
         return {}, []
 
