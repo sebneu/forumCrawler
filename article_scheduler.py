@@ -6,6 +6,7 @@ from datetime import datetime
 
 
 import requests
+import sys
 from pymongo import MongoClient
 import logging
 import os
@@ -32,7 +33,7 @@ def compress_article(url):
 
 def get_articles(db, args):
     politeness = args.politeness
-    for filename in os.listdir('rss_feeds'):
+    for filename in os.listdir(os.path.join(sys.path[0], 'rss_feeds')):
         if filename.endswith('.txt'):
             newspaper = filename.split('.txt')[0]
             with open('rss_feeds/' + filename, 'r') as f:
