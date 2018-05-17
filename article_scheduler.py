@@ -24,10 +24,13 @@ def decompress_article(content):
 
 
 def compress_article(url):
-    resp = requests.get(url)
-    if 200 <= resp.status_code < 300:
-        data = resp.content
-        return base64.b64encode(zlib.compress(data))
+    try:
+        resp = requests.get(url)
+        if 200 <= resp.status_code < 300:
+            data = resp.content
+            return base64.b64encode(zlib.compress(data))
+    except Exception as e:
+        logging.info('Could not access link: ' + url)
     else:
         return None
 
