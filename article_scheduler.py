@@ -33,10 +33,11 @@ def compress_article(url):
 
 def get_articles(db, args):
     politeness = args.politeness
-    for filename in os.listdir(os.path.join(sys.path[0], 'rss_feeds')):
+    wd = os.path.join(sys.path[0], 'rss_feeds')
+    for filename in os.listdir(wd):
         if filename.endswith('.txt'):
             newspaper = filename.split('.txt')[0]
-            with open('rss_feeds/' + filename, 'r') as f:
+            with open(os.path.join(wd, filename), 'r') as f:
                 for url in f:
                     logging.info('RSS feed: ' + url)
                     rss_feed = feedparser.parse(url.strip())
