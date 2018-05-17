@@ -4,21 +4,15 @@ import dateparser
 
 from bs4 import BeautifulSoup
 
-from selenium import webdriver
+from derstandard_crawler import Crawler
 import logging
 import locale
 locale.setlocale(locale.LC_ALL, "de_AT.utf8")
 
 
-class Crawler:
+class KroneCrawler(Crawler):
     def __init__(self):
-        self.browser = webdriver.Chrome('./chromedriver')
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.browser.quit()
+        Crawler.__init__(self)
 
     def load_more_postings(self):
         try:
@@ -34,7 +28,6 @@ class Crawler:
                 return False
         except:
             return False
-
 
     def get_postings_from_html(self, formatted_result, url):
         soup = BeautifulSoup(formatted_result, 'html.parser')
@@ -60,7 +53,6 @@ class Crawler:
             p['negative'] = int(neg)
 
             yield p
-
 
     def get_postings(self, url, politeness):
         article = {}
@@ -89,7 +81,7 @@ class Crawler:
                 for p in self.get_postings_from_html(self.browser.page_source, url):
                     postings.append(p)
         except Exception as e:
-            logging.debug('Exception for article: ' + url)
+            logging.debug('Exception for article: ' + str(url))
             logging.debug(e)
         return article, postings
 

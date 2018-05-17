@@ -5,7 +5,8 @@ import requests
 
 from bs4 import BeautifulSoup
 
-from selenium import webdriver
+from derstandard_crawler import Crawler
+
 import logging
 import locale
 import dateutil.parser
@@ -13,15 +14,20 @@ import dateutil.parser
 locale.setlocale(locale.LC_ALL, "de_AT.utf8")
 
 
-class Crawler:
+def get_article_id(url):
+    parts = url.split('/')
+
+    article_id = None
+    for p in parts:
+        if p.isdigit():
+            article_id = p
+            break
+    return article_id
+
+
+class PresseCrawler(Crawler):
     def __init__(self):
-        self.browser = webdriver.Chrome('./chromedriver')
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.browser.quit()
+        Crawler.__init__(self)
 
     def load_all_postings(self):
         # loadmore = self.browser.find_element_by_class_name("comments")
@@ -76,13 +82,7 @@ class Crawler:
     def insert_article(self, db, page, politeness):
         articles_collection = db.articles
 
-        parts = page.split('/')
-
-        article_id = None
-        for p in parts:
-            if p.isdigit():
-                article_id = p
-                break
+        article_id = get_article_id(url)
 
         if not article_id:
             print 'no id found: ', page
@@ -152,8 +152,10 @@ def get_postings_data(d, postings, parent_id=None, level=0):
         get_postings_data(sub_d, postings, parent_id=p['_id'], level=level + 1)
 
 
-def get_postings(article_id, comments=15):
-    #try:
+def get_postings(url, comments=15, politeness=1):
+    try:
+        article_id = get_article_id(url)
+        a = {'article_id': article_id}
         page = 0
 
         url = 'https://comment-middleware.getoctopus.com/live/diepresse/contents'
@@ -187,13 +189,13 @@ def get_postings(article_id, comments=15):
                 else:
                     break
 
-            return postings
+            return a, postings
         else:
             raise Exception(resp.content)
-    #except Exception as e:
-    #    logging.debug('Exception for article: ' + article_id)
-    #    logging.debug(e)
-    #    return []
+    except Exception as e:
+        logging.debug('Exception for article: ' + str(url))
+        logging.debug(e)
+        return {}, []
 
 
 def get_links_from_doc(doc='presse_links.txt'):

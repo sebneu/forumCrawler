@@ -54,6 +54,7 @@ def get_articles(db, args):
                         a = db.articles.find_one({'_id': url})
                         if not a:
                             doc = {
+                                '_id': url,
                                 'content': compress_article(url),
                                 'accessed': datetime.now(),
                                 'published': datetime.fromtimestamp(mktime(entry.published_parsed)),
@@ -70,20 +71,22 @@ def get_articles(db, args):
 
 
 def get_comments(db, args):
-    kc = krone_crawler.Crawler()
-    sc = derstandard_crawler.Crawler()
-    for article in db.articles.find({'processed': False, 'accessed': {'$gte': datetime.now() - timedelta(days=7)}}, {'_id': 1}):
-        postings = []
-        if article['newspaper'] == 'krone':
-            article, postings = kc.get_postings(article['_id'], politeness=1)
-        elif article['newspaper'] == 'presse':
-            postings = presse_crawler.get_postings(article['_id'])
-        elif article['newspaper'] == 'derstandard':
-            postings = sc.get_postings(article['_id'], politeness=1)
+    with krone_crawler.KroneCrawler() as kc, derstandard_crawler.StandardCrawler() as sc:
+        for article in db.articles.find({'processed': False, 'accessed': {'$gte': datetime.now() - timedelta(days=7)}}, {'_id': 1, 'newspaper': 1}):
+            postings = []
+            if article['newspaper'] == 'krone':
+                add_info, postings = kc.get_postings(article['_id'], politeness=args.politeness)
+            elif article['newspaper'] == 'presse':
+                add_info, postings = presse_crawler.get_postings(article['_id'], politeness=args.politeness)
+            elif article['newspaper'] == 'derstandard':
+                postings = sc.get_postings(article['_id'], politeness=args.politeness)
 
-        if postings:
-            db.postings.insert_many(postings)
-        db.articles.update({'_id': article['_id']}, {'$set': {'processed': True}})
+            if postings:
+                db.postings.insert_many(postings)
+            db.articles.update({'_id': article['_id']}, {'$set': {'processed': True}})
+
+
+
 
 
 if __name__ == '__main__':

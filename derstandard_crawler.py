@@ -5,6 +5,10 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import os
+import sys
+
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
 import logging
@@ -14,13 +18,23 @@ locale.setlocale(locale.LC_ALL, "de_AT.utf8")
 
 class Crawler:
     def __init__(self):
-        self.browser = webdriver.Chrome('./chromedriver')
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--window-size=1920x1080")
+        chrome_driver = os.path.join(sys.path[0], 'chromedriver')
+
+        self.browser = webdriver.Chrome(chrome_options=chrome_options, executable_path=chrome_driver)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.browser.quit()
+
+
+class StandardCrawler(Crawler):
+    def __init__(self):
+        Crawler.__init__(self)
 
     def load_more_postings(self):
         def _get_more_button():
@@ -97,7 +111,7 @@ class Crawler:
 
             return postings.values()
         except Exception as e:
-            logging.debug('Exception for article: ' + url)
+            logging.debug('Exception for article: ' + str(url))
             logging.debug(e)
             return []
 
