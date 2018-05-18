@@ -77,7 +77,12 @@ class StandardCrawler(Crawler):
             text_tag = posting.find('div', class_='upost-text')
             if text_tag:
                 p['text'] = text_tag.get_text().encode('utf-8')
-            else:
+            title_tag = posting.find('h4', class_='upost-title')
+            if title_tag:
+                tmp = title_tag.get_text()
+                if tmp:
+                    p['title'] = title_tag.get_text().encode('utf-8')
+            if 'text' not in p and 'title' not in p:
                 # if no text we ignore the posting
                 continue
 

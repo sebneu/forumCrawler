@@ -72,7 +72,7 @@ def get_articles(db, args):
 
 def get_comments(db, args):
     with krone_crawler.KroneCrawler() as kc, derstandard_crawler.StandardCrawler() as sc:
-        for article in db.articles.find({'processed': False, 'accessed': {'$gte': datetime.now() - timedelta(days=7)}}, {'_id': 1, 'newspaper': 1}):
+        for article in db.articles.find({'processed': False, 'accessed': {'$lte': datetime.now() - timedelta(days=7)}}, {'_id': 1, 'newspaper': 1}):
             postings = []
             if article['newspaper'] == 'krone':
                 add_info, postings = kc.get_postings(article['_id'], politeness=args.politeness)
@@ -82,7 +82,7 @@ def get_comments(db, args):
                 postings = sc.get_postings(article['_id'], politeness=args.politeness)
 
             if postings:
-                db.postings.insert_many(postings)
+                db.postings.insert_many(postings, ordered=False)
             db.articles.update({'_id': article['_id']}, {'$set': {'processed': True}})
 
 

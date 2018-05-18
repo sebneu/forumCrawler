@@ -135,9 +135,10 @@ def get_postings_data(article_url, d, postings, parent_id=None, level=0):
 
     if 'content' in posting and posting['content']:
         p['text'] = posting['content'].encode('utf-8')
-    elif 'title' in posting and posting['title']:
-        p['text'] = posting['title'].encode('utf-8')
-    else:
+    if 'title' in posting and posting['title']:
+        p['title'] = posting['title'].encode('utf-8')
+    if 'text' not in p and 'title' not in p:
+        # no content
         return
 
     if 'userId' in posting and posting['userId']:
