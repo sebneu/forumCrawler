@@ -31,11 +31,16 @@ def reindex(client, oldclient, politeness):
                 p['newspaper'] = newspaper
                 postings.append(p)
             if postings:
-                db.postings.insert_many(postings, ordered=False)
+                try:
+                    db.postings.insert_many(postings, ordered=False)
+                except Exception as e:
+                    logging.info('Error while inserting postings: ' + str(e))
 
             time.sleep(politeness)
-            break
-        db.articles.insert_many(articles, ordered=False)
+        try:
+            db.articles.insert_many(articles, ordered=False)
+        except Exception as e:
+            logging.info('Error while inserting articles: ' + str(e))
 
 
 if __name__ == '__main__':
