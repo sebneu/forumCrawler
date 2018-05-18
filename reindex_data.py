@@ -10,7 +10,6 @@ def reindex(client, oldclient, politeness):
     db = client.forumdata
 
     for newspaper, olddb in [('derstandard', oldclient.derstandardat), ('krone', oldclient.krone), ('presse', oldclient.diepresse)]:
-        articles = []
         for a in olddb.articles.find():
             url = a['url'].split('?')[0]
             if newspaper == 'derstandard':
@@ -23,7 +22,8 @@ def reindex(client, oldclient, politeness):
                 'newspaper': newspaper,
                 'processed': True
             }
-            articles.append(doc)
+            if not db.articles.find({'_id': doc['_id']}):
+                db.articles.insert(doc)
 
             postings = []
             for p in olddb.postings.find({'article_id': a['_id']}):
@@ -37,10 +37,6 @@ def reindex(client, oldclient, politeness):
                     logging.info('Error while inserting postings: ' + str(e))
 
             time.sleep(politeness)
-        try:
-            db.articles.insert_many(articles, ordered=False)
-        except Exception as e:
-            logging.info('Error while inserting articles: ' + str(e))
 
 
 if __name__ == '__main__':
