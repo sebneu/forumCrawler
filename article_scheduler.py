@@ -82,7 +82,10 @@ def get_comments(db, args):
                 postings = sc.get_postings(article['_id'], politeness=args.politeness)
 
             if postings:
-                db.postings.insert_many(postings, ordered=False)
+                try:
+                    db.postings.insert_many(postings, ordered=False)
+                except Exception as e:
+                    logging.exception('Error during DB insert of postings: ' + str(e) + ', ' + str(e.message))
             db.articles.update({'_id': article['_id']}, {'$set': {'processed': True}})
 
 
