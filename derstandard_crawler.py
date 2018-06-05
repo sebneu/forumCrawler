@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, "de_AT.utf8")
 class Crawler:
     def __init__(self):
         chrome_options = Options()
-        #chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--window-size=1920x1080")
         chrome_driver = os.path.join(sys.path[0], 'chromedriver')
 
@@ -58,7 +58,7 @@ class StandardCrawler(Crawler):
 
         postinglist = soup.find('div', id='postinglist')
         if not postinglist:
-            raise Exception('')
+            raise Exception('No forum at this site: ' + url)
 
         for posting in postinglist.find_all('div', class_='posting'):
             p = {'article_id': url, 'newspaper': 'derstandard'}
