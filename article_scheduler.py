@@ -81,11 +81,11 @@ def get_comments(db, args):
             elif article['newspaper'] == 'derstandard':
                 postings = sc.get_postings(article['_id'], politeness=args.politeness)
 
-            if postings:
+            for p in postings:
                 try:
-                    db.postings.insert_many(postings, ordered=False)
+                    db.postings.insert_one(p)
                 except Exception as e:
-                    logging.exception('Error during DB insert of postings: ' + str(e) + ', ' + str(e.message))
+                    logging.exception('Error during DB insert of posting: ' + str(e) + ', ' + str(e.message))
             db.articles.update({'_id': article['_id']}, {'$set': {'processed': True}})
 
 

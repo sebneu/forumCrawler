@@ -108,10 +108,13 @@ class StandardCrawler(Crawler):
                 time.sleep(politeness)
 
             self.browser.get(url)
-
-            privacy_button = self.browser.find_element_by_class_name('privacy-button')
-            if privacy_button:
-                self.browser.execute_script("arguments[0].click();", privacy_button)
+            try:
+                privacy_button = self.browser.find_element_by_class_name('privacy-button')
+                if privacy_button:
+                    self.browser.execute_script("arguments[0].click();", privacy_button)
+            except Exception as e:
+                # privacy button already clicked
+                pass
 
             postings = {}
             for p in self.get_postings_from_html(self.browser.page_source, url):
