@@ -72,7 +72,7 @@ def get_articles(db, args):
 
 def get_comments(db, args):
     with krone_crawler.KroneCrawler() as kc, derstandard_crawler.StandardCrawler() as sc:
-        for article in db.articles.find({'processed': False, 'accessed': {'$lte': datetime.now() - timedelta(days=7)}}, {'_id': 1, 'newspaper': 1}):
+        for article in db.articles.find({'processed': False, 'accessed': {'$lte': datetime.now() - timedelta(days=7)}}, {'_id': 1, 'newspaper': 1}, no_cursor_timeout=True):
             postings = []
             if article['newspaper'] == 'krone':
                 add_info, postings = kc.get_postings(article['_id'], politeness=args.politeness)
@@ -81,11 +81,10 @@ def get_comments(db, args):
             elif article['newspaper'] == 'derstandard':
                 postings = sc.get_postings(article['_id'], politeness=args.politeness)
 
-            for p in postings:
-                try:
-                    db.postings.insert_one(p)
-                except Exception as e:
-                    logging.exception('Error during DB insert of posting: ' + str(e) + ', ' + str(e.message))
+            try:
+                db.postings.insert_many(postings)
+            except Exception as e:
+                logging.exception('Error during DB insert of postings: ' + str(e) + ', ' + str(e.message))
             db.articles.update({'_id': article['_id']}, {'$set': {'processed': True}})
 
 
