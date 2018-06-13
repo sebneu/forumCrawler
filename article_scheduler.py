@@ -72,7 +72,21 @@ def get_articles(db, args):
 
 def get_comments(db, args):
     with krone_crawler.KroneCrawler() as kc, derstandard_crawler.StandardCrawler() as sc:
-        for article in db.articles.find({'processed': False, 'accessed': {'$lte': datetime.now() - timedelta(days=7)}}, {'_id': 1, 'newspaper': 1}, no_cursor_timeout=True):
+        if args.url:
+            u = args.url
+            if 'krone.at' in u:
+                np = 'krone'
+            elif 'derstandard.at' in u:
+                np = 'derstandard'
+            elif 'diepresse.com' in u:
+                np = 'presse'
+            else:
+                np = None
+            articles = [{'_id': u, 'newspaper': np}]
+        else:
+            articles = db.articles.find({'processed': False, 'accessed': {'$lte': datetime.now() - timedelta(days=7)}}, {'_id': 1, 'newspaper': 1}, no_cursor_timeout=True)
+
+        for article in articles:
             postings = []
             if article['newspaper'] == 'krone':
                 add_info, postings = kc.get_postings(article['_id'], politeness=args.politeness)
@@ -80,14 +94,12 @@ def get_comments(db, args):
                 add_info, postings = presse_crawler.get_postings(article['_id'], politeness=args.politeness)
             elif article['newspaper'] == 'derstandard':
                 postings = sc.get_postings(article['_id'], politeness=args.politeness)
-
-            try:
-                db.postings.insert_many(postings)
-            except Exception as e:
-                logging.exception('Error during DB insert of postings: ' + str(e) + ', ' + str(e.message))
+            if postings:
+                try:
+                    db.postings.insert_many(postings)
+                except Exception as e:
+                    logging.exception('Error during DB insert of postings: ' + str(e) + ', ' + str(e.message))
             db.articles.update({'_id': article['_id']}, {'$set': {'processed': True}})
-
-
 
 
 
@@ -106,8 +118,9 @@ if __name__ == '__main__':
     parser_articles = subparsers.add_parser('articles', help='Get articles from RSS feeds')
     parser_articles.set_defaults(func=get_articles)
 
-    parser_articles = subparsers.add_parser('comments', help='Get new comments from crawled articles')
-    parser_articles.set_defaults(func=get_comments)
+    parser_comments = subparsers.add_parser('comments', help='Get new comments from crawled articles')
+    parser_comments.add_argument('--url', help='Only add comments for the given URL.')
+    parser_comments.set_defaults(func=get_comments)
 
     # parse arguments
     args = parser.parse_args()

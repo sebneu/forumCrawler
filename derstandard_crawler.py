@@ -112,6 +112,7 @@ class StandardCrawler(Crawler):
                 privacy_button = self.browser.find_element_by_class_name('privacy-button')
                 if privacy_button:
                     self.browser.execute_script("arguments[0].click();", privacy_button)
+                    time.sleep(4)
             except Exception as e:
                 # privacy button already clicked
                 pass
